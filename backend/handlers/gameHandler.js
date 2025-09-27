@@ -1,6 +1,7 @@
 const { getRoom, updateRoom } = require('../services/roomService');
-const { sendToPlayersRolledNumber, sendWinner } = require('../socket/emits');
+const { sendToPlayersRolledNumber, sendWinner, sendScores } = require('../socket/emits');
 const { rollDice, isMoveValid } = require('./handlersFunctions');
+const { ensureScoreFields, addProgressScore, applyCaptureScoring, recomputePlayerTotals } = require('../utils/scoring');
 
 module.exports = socket => {
     const req = socket.request;
@@ -10,9 +11,19 @@ module.exports = socket => {
         if (room.winner) return;
         const pawn = room.getPawn(pawnId);
         if (isMoveValid(req.session, pawn, room)) {
+            ensureScoreFields(room);
+            const stepsMoved = room.rolledNumber;
+            // Move pawn
             const newPositionOfMovedPawn = pawn.getPositionAfterMove(room.rolledNumber);
             room.changePositionOfPawn(pawn, newPositionOfMovedPawn);
-            room.beatPawns(newPositionOfMovedPawn, req.session.color);
+            // Progress-based scoring
+            addProgressScore(room, pawn._id, stepsMoved);
+            // Capture scoring
+            const victims = room.beatPawns(newPositionOfMovedPawn, req.session.color);
+            applyCaptureScoring(room, pawn._id, victims);
+            // Recompute player totals for emit
+            room.playerScores = recomputePlayerTotals(room);
+
             room.changeMovingPlayer();
             const winner = room.getWinner();
             if (winner) {
@@ -20,6 +31,8 @@ module.exports = socket => {
                 sendWinner(room._id.toString(), winner);
             }
             await updateRoom(room);
+            // Emit updated scores to all players in the room
+            sendScores(room._id.toString(), { playerScores: room.playerScores, capturesByPlayer: room.capturesByPlayer || {} });
         }
     };
 

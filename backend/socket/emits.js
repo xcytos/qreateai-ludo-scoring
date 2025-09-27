@@ -20,10 +20,15 @@ const sendWinner = (id, winner) => {
     socketManager.getIO().to(id).emit('game:winner', winner);
 };
 
+const sendScores = (id, scores) => {
+    socketManager.getIO().to(id).emit('game:scores', scores);
+};
+
 module.exports = {
     sendToPlayersData,
     sendToPlayersRolledNumber,
     sendToOnePlayerData,
     sendToOnePlayerRooms,
     sendWinner,
+    sendScores,
 };
