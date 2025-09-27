@@ -7,6 +7,7 @@ import Navbar from '../Navbar/Navbar';
 import Overlay from '../Overlay/Overlay';
 import styles from './Gameboard.module.css';
 import trophyImage from '../../images/trophy.webp';
+import Scoreboard from '../Scoreboard/Scoreboard';
 
 const Gameboard = () => {
     const socket = useContext(SocketContext);
@@ -75,6 +76,7 @@ const Gameboard = () => {
                         nowMoving={nowMoving}
                         ended={winner !== null}
                     />
+                    <Scoreboard players={players} />
                     <Map pawns={pawns} nowMoving={nowMoving} rolledNumber={rolledNumber} />
                 </div>
             ) : (

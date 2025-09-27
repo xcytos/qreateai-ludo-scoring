@@ -1,0 +1,31 @@
+/* Simple, readable scoreboard panel */
+.panel {
+  margin: 8px 0 12px 0;
+  padding: 8px 12px;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 6px;
+  background: rgba(0,0,0,0.3);
+  font-size: 14px;
+}
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+.name {
+  font-weight: 700;
+}
+.points {
+  min-width: 100px;
+  text-align: right;
+}
+.captures {
+  opacity: 0.8;
+  margin-left: 8px;
+  font-size: 12px;
+}
+.red { color: #ff6b6b; }
+.blue { color: #4dabf7; }
+.green { color: #69db7c; }
+.yellow { color: #ffd43b; }
