@@ -25,7 +25,7 @@ cp backend/.env.example backend/.env
 # Edit .env with your MongoDB connection string
 
 # Start servers
-cd backend && npm start          # Backend on :5000
+cd backend && npm start          # Backend on : 8080
 npm start                        # Frontend on :3000
 ```
 
