@@ -20,7 +20,7 @@ app.use(express.json());
 app.set('trust proxy', 1);
 app.use(
     cors({
-        origin: 'http://localhost:3000',
+        origin: ['http://localhost:3000', 'http://10.139.87.120:3000'],
         credentials: true,
     })
 );

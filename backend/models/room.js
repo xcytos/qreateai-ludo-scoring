@@ -39,10 +39,19 @@ const RoomSchema = new mongoose.Schema({
 });
 
 RoomSchema.methods.beatPawns = function (position, attackingPawnColor) {
+    // Safe squares where pawns cannot be captured - starting positions for each color
+    const SAFE_SQUARES = [16, 55, 42, 29]; // Red, Blue, Green, Yellow starting positions
+    
     const pawnsOnPosition = this.pawns.filter(pawn => pawn.position === position);
     const victims = [];
     pawnsOnPosition.forEach(pawn => {
         if (pawn.color !== attackingPawnColor) {
+            // Check if pawn is on a safe square - cannot be captured
+            if (SAFE_SQUARES.includes(position)) {
+                // Pawn is on safe square - skip capture entirely
+                return;
+            }
+            
             const index = this.getPawnIndex(pawn._id);
             victims.push(this.pawns[index]);
             // Send victim back to base (score reset handled by scoring util)
