@@ -29,6 +29,15 @@ function getPlayerIdByColor(room, color) {
   return player && player._id ? player._id.toString() : null;
 }
 
+// Safe starting positions where pawns cannot transfer score on capture
+// These are the positions where pawns land when they first exit their base
+const SAFE_SQUARES = [16, 55, 42, 29]; // Red, Blue, Green, Yellow starting positions
+
+function isSafeSquare(position, color) {
+  // Check if position is one of the safe starting positions
+  return SAFE_SQUARES.includes(position);
+}
+
 function applyCaptureScoring(room, strikerPawnId, victims) {
   if (!victims || victims.length === 0) return;
   const targetIdx = room.getPawnIndex(strikerPawnId);
@@ -38,18 +47,26 @@ function applyCaptureScoring(room, strikerPawnId, victims) {
     room.capturesByPlayer[strikerPlayerId] = 0;
   }
 
+  let actualCaptures = 0;
   victims.forEach((victim) => {
     const vIdx = room.getPawnIndex(victim._id);
     const vScore = room.pawns[vIdx].score || 0;
-    if (vScore > 0 && targetIdx >= 0) {
+    
+    // Check if victim was on a safe square - no score transfer if on safe square
+    const isOnSafeSquare = isSafeSquare(victim.position, victim.color);
+    
+    if (!isOnSafeSquare && vScore > 0 && targetIdx >= 0) {
+      // Transfer score only if victim was NOT on safe square
       room.pawns[targetIdx].score = (room.pawns[targetIdx].score || 0) + vScore;
+      actualCaptures++;
     }
-    // reset victim's score per spec
+    // Always reset victim's score (they go back to base regardless)
     room.pawns[vIdx].score = 0;
   });
 
-  if (strikerPlayerId) {
-    room.capturesByPlayer[strikerPlayerId] = (room.capturesByPlayer[strikerPlayerId] || 0) + victims.length;
+ 
+  if (strikerPlayerId && actualCaptures > 0) {
+    room.capturesByPlayer[strikerPlayerId] = (room.capturesByPlayer[strikerPlayerId] || 0) + actualCaptures;
   }
 }
 
