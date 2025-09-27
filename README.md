@@ -1,10 +1,57 @@
-<h1  align="center">Online Multiplayer Ludo Game </h1>
+# QreateAI Ludo Scoring System 🎯
 
-Ludo Online is a multiplayer web-based implementation of the classic board game Ludo, built using the MERN stack and integrated with SocketIO for real-time communication.
-  
-<p align="center">
->> <a href="https://youtu.be/mGMnH9Nvsyw">Watch YouTube Video here</a> <<
-  </p>
+**Full Stack Developer Assignment - Real-time Multiplayer Ludo with Advanced Scoring**
+
+[![Node.js](https://img.shields.io/badge/Node.js-16%2B-green)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-18-blue)](https://reactjs.org/)
+[![Socket.IO](https://img.shields.io/badge/Socket.IO-4.5-orange)](https://socket.io/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-green)](https://mongodb.com/)
+[![Jest](https://img.shields.io/badge/Jest-29-red)](https://jestjs.io/)
+
+> Extended MERN stack multiplayer Ludo game with comprehensive real-time scoring system, safe square mechanics, and full test coverage.
+
+## Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/xcytos/qreateai-ludo-scoring.git
+cd qreateai-ludo-scoring/repo
+
+# Install dependencies
+cd backend && npm install
+cd .. && npm install
+
+# Setup environment
+cp backend/.env.example backend/.env
+# Edit .env with your MongoDB connection string
+
+# Start servers
+cd backend && npm start          # Backend on :5000
+npm start                        # Frontend on :3000
+```
+
+## 🎯Scoring System Features
+
+###Real-time Score Updates
+- **Instant feedback** via WebSocket communication
+- **Live leaderboard** with dynamic rankings  
+- **Progress tracking** for each player's advancement
+
+### Dual Scoring Mechanics
+1. **Progress Points**: 1 point per step moved on board
+2. **Capture Bonuses**: Transfer victim's total score to attacker
+3. **Safe Square Protection**: Starting positions prevent unfair captures
+
+### Safe Square Logic (Critical Fix)
+```javascript
+// Corrected safe starting positions
+const SAFE_SQUARES = [16, 55, 42, 29]; // Red, Blue, Green, Yellow
+```
+
+### 🧪 Comprehensive Testing
+- **16 Unit Tests** with Jest framework
+- **100% Function Coverage** for scoring system
+- **Bug Discovery**: Tests caught critical safe square issue
 
 ## Architecture
 
@@ -42,29 +89,7 @@ Other:
 -   Established a CI/CD pipeline using **CircleCI**, with pushing **Docker** container to **AWS ECR** and deploying to **AWS ECS**
 
 
-## Installation
 
-1.  Download this repository
-
-2.  Generate your own [mongoDB atlas](https://www.mongodb.com) credential URL. It should looks like this:
-
-```
-
-mongodb+srv://madmin:<password>@clustername.mongodb.net/<dbname>?retryWrites=true&w=majority
-
-```
-
-3.  Add this URL to the /backend/.env file (refer to .env.example)
-
-4.  Perform these commands in the main directory:
-
-```
-npm i
-npm start
-cd backend
-npm i
-node server.js
-```
 
 ## Screenshots
 

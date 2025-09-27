@@ -17,17 +17,34 @@ const Scoreboard = ({ players }) => {
         }
     });
 
+    // Create sorted leaderboard
+    const leaderboard = COLOR_ORDER.map(color => {
+        const pid = colorToPlayerId[color];
+        const points = pid ? playerScores[pid] || 0 : 0;
+        const caps = pid ? capturesByPlayer[pid] || 0 : 0;
+        return { color, pid, points, caps };
+    }).sort((a, b) => b.points - a.points);
+
     return (
-        <div className={styles.panel} aria-label='Scoreboard'>
-            {COLOR_ORDER.map(color => {
-                const pid = colorToPlayerId[color];
-                const points = pid ? playerScores[pid] || 0 : 0;
-                const caps = pid ? capturesByPlayer[pid] || 0 : 0;
+        <div className={styles.panel} aria-label='Live Scoreboard'>
+            <div className={styles.header}>
+                <h3 className={styles.title}>🏆 Scoreboard</h3>
+            </div>
+            
+            {leaderboard.map((player, index) => {
+                const rankIcon = index === 0 ? '👑' : `${index + 1}.`;
+                
                 return (
-                    <div key={color} className={`${styles.row} ${styles[color]}`}>
-                        <span className={styles.name}>{color.toUpperCase()}:</span>
-                        <span className={styles.points}>{points} points</span>
-                        <span className={styles.captures} title='captures'> (captures: {caps})</span>
+                    <div key={player.color} className={`${styles.row} ${styles[player.color]}`}>
+                        <div className={styles.playerInfo}>
+                            <span className={styles.rank}>{rankIcon}</span>
+                            <span className={styles.name}>{player.color.toUpperCase()}</span>
+                        </div>
+                        
+                        <div className={styles.scoreInfo}>
+                            <span className={styles.points}>{player.points} pts</span>
+                            <span className={styles.captures}>({player.caps} captures)</span>
+                        </div>
                     </div>
                 );
             })}
