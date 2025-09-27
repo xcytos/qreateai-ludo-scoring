@@ -16,6 +16,9 @@ const RoomSchema = new mongoose.Schema({
     rolledNumber: Number,
     players: [PlayerSchema],
     winner: { type: String, default: null },
+    // Scoring state maintained at room level
+    playerScores: { type: Object, default: {} },
+    capturesByPlayer: { type: Object, default: {} },
     pawns: {
         type: [PawnSchema],
         default: () => {
@@ -37,12 +40,16 @@ const RoomSchema = new mongoose.Schema({
 
 RoomSchema.methods.beatPawns = function (position, attackingPawnColor) {
     const pawnsOnPosition = this.pawns.filter(pawn => pawn.position === position);
+    const victims = [];
     pawnsOnPosition.forEach(pawn => {
         if (pawn.color !== attackingPawnColor) {
             const index = this.getPawnIndex(pawn._id);
+            victims.push(this.pawns[index]);
+            // Send victim back to base (score reset handled by scoring util)
             this.pawns[index].position = this.pawns[index].basePos;
         }
     });
+    return victims;
 };
 
 RoomSchema.methods.changeMovingPlayer = function () {
@@ -63,7 +70,8 @@ RoomSchema.methods.changeMovingPlayer = function () {
 RoomSchema.methods.movePawn = function (pawn) {
     const newPositionOfMovedPawn = pawn.getPositionAfterMove(this.rolledNumber);
     this.changePositionOfPawn(pawn, newPositionOfMovedPawn);
-    this.beatPawns(newPositionOfMovedPawn, pawn.color);
+    const victims = this.beatPawns(newPositionOfMovedPawn, pawn.color);
+    return { newPosition: newPositionOfMovedPawn, victims };
 };
 
 RoomSchema.methods.getPawnsThatCanMove = function () {

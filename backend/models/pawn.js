@@ -6,6 +6,8 @@ const PawnSchema = new Schema({
     color: String,
     basePos: Number,
     position: Number,
+    // Scoring: each pawn accumulates points as it moves
+    score: { type: Number, default: 0 },
 });
 
 PawnSchema.methods.canMove = function (rolledNumber) {
