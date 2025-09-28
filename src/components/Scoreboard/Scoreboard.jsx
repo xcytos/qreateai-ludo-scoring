@@ -8,6 +8,12 @@ const Scoreboard = ({ players }) => {
     const [scoresPayload] = useSocketData('game:scores');
     const playerScores = scoresPayload?.playerScores || {};
     const capturesByPlayer = scoresPayload?.capturesByPlayer || {};
+    
+    // Debug logging
+    console.log('Scoreboard - players:', players);
+    console.log('Scoreboard - scoresPayload:', scoresPayload);
+    console.log('Scoreboard - playerScores:', playerScores);
+    console.log('Scoreboard - capturesByPlayer:', capturesByPlayer);
 
     // Map colors to playerIds for display ordering
     const colorToPlayerId = {};

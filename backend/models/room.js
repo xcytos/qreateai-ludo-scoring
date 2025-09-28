@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { COLORS, MOVE_TIME } = require('../utils/constants');
+const { COLORS, MOVE_TIME, GAME_TIMER } = require('../utils/constants');
 const { makeRandomMove } = require('../handlers/handlersFunctions');
 const timeoutManager = require('./timeoutManager.js');
 const PawnSchema = require('./pawn');
@@ -14,11 +14,16 @@ const RoomSchema = new mongoose.Schema({
     full: { type: Boolean, default: false },
     nextMoveTime: Number,
     rolledNumber: Number,
+    // Game timer fields
+    gameStartTime: { type: Date, default: null },
+    gameEndTime: { type: Date, default: null },
+    gameDuration: { type: Number, default: GAME_TIMER },
     players: [PlayerSchema],
     winner: { type: String, default: null },
+    winReason: { type: String, default: null }, // 'score', 'traditional', 'timeout'
     // Scoring state maintained at room level
-    playerScores: { type: Object, default: {} },
-    capturesByPlayer: { type: Object, default: {} },
+    playerScores: { type: Object, default: {} }, // playerId -> score mapping
+    capturesByPlayer: { type: Object, default: {} }, // playerId -> capture count
     pawns: {
         type: [PawnSchema],
         default: () => {
@@ -100,35 +105,155 @@ RoomSchema.methods.canStartGame = function () {
 
 RoomSchema.methods.startGame = function () {
     this.started = true;
+    this.gameStartTime = new Date();
+    this.gameEndTime = new Date(Date.now() + this.gameDuration);
     this.nextMoveTime = Date.now() + MOVE_TIME;
     this.players.forEach(player => (player.ready = true));
     this.players[0].nowMoving = true;
+    
+    // Initialize scoring
+    const { ensureScoreFields } = require('../utils/scoring');
+    ensureScoreFields(this);
+    
+    // Set move timeout
     timeoutManager.set(makeRandomMove, MOVE_TIME, this._id.toString());
+    // Set game timer
+    timeoutManager.set(this.endGameByTimer.bind(this), this.gameDuration, `${this._id.toString()}_game`);
 };
 
-RoomSchema.methods.endGame = function (winner) {
+// New method: End game when timer expires
+RoomSchema.methods.endGameByTimer = async function () {
+    if (this.winner) return; // Game already ended
+    
+    // Ensure scores are calculated
+    const { recomputePlayerTotals } = require('../utils/scoring');
+    this.playerScores = recomputePlayerTotals(this);
+    
+    // Determine winner by score
+    const winner = this.getWinnerByScore();
+    this.endGame(winner, 'timer');
+    
+    // Save the room first
+    await this.save();
+    
+    // Emit events if socket.io is available
+    try {
+        const socketManager = require('../socket/socketManager');
+        const { sendWinner } = require('../socket/emits');
+        
+        // Check if socket.io is initialized
+        if (socketManager.getIO()) {
+            sendWinner(this._id.toString(), winner);
+            
+            // Also emit timer end event with additional data
+            socketManager.getIO().to(this._id.toString()).emit('game:timer-end', {
+                winner: winner,
+                reason: this.winReason,
+                finalScores: this.playerScores,
+                captures: this.capturesByPlayer
+            });
+        }
+    } catch (error) {
+        // Socket.io not available (e.g., in tests)
+        if (process.env.NODE_ENV === 'test' || error.message.includes('not initialized')) {
+            console.log('Socket.io not available, skipping emit');
+        } else {
+            console.error('Error emitting timer end:', error);
+        }
+    }
+};
+
+// Get remaining game time in milliseconds
+RoomSchema.methods.getRemainingTime = function () {
+    if (!this.gameStartTime || !this.gameEndTime) return null;
+    if (this.winner) return 0;
+    
+    const now = Date.now();
+    const endTime = this.gameEndTime.getTime();
+    return Math.max(0, endTime - now);
+};
+
+RoomSchema.methods.endGame = function (winner, reason = null) {
     timeoutManager.clear(this._id.toString());
+    timeoutManager.clear(`${this._id.toString()}_game`);
     this.rolledNumber = null;
     this.nextMoveTime = null;
     this.players.map(player => (player.nowMoving = false));
     this.winner = winner;
-    this.save();
+    if (reason) {
+        this.winReason = reason;
+    }
+    // Note: save() is called by the caller when needed
 };
-
 RoomSchema.methods.getWinner = function () {
+    // Check for traditional Ludo win (all 4 pawns home)
     if (this.pawns.filter(pawn => pawn.color === 'red' && pawn.position === 73).length === 4) {
+        this.winReason = 'traditional';
         return 'red';
     }
     if (this.pawns.filter(pawn => pawn.color === 'blue' && pawn.position === 79).length === 4) {
+        this.winReason = 'traditional';
         return 'blue';
     }
     if (this.pawns.filter(pawn => pawn.color === 'green' && pawn.position === 85).length === 4) {
+        this.winReason = 'traditional';
         return 'green';
     }
     if (this.pawns.filter(pawn => pawn.color === 'yellow' && pawn.position === 91).length === 4) {
+        this.winReason = 'traditional';
         return 'yellow';
     }
     return null;
+};
+
+// New method: Get winner by score (for timer-based ending)
+RoomSchema.methods.getWinnerByScore = function () {
+    if (!this.playerScores || Object.keys(this.playerScores).length === 0) {
+        return null; // No scores available
+    }
+    
+    // Find highest score
+    let maxScore = -1;
+    let topPlayers = [];
+    
+    for (const playerId in this.playerScores) {
+        const score = this.playerScores[playerId];
+        if (score > maxScore) {
+            maxScore = score;
+            topPlayers = [playerId];
+        } else if (score === maxScore) {
+            topPlayers.push(playerId);
+        }
+    }
+    
+    // If only one player has highest score
+    if (topPlayers.length === 1) {
+        const player = this.players.find(p => p._id.toString() === topPlayers[0]);
+        return player ? player.color : null;
+    }
+    
+    // Tie-breaker: most captures
+    if (topPlayers.length > 1 && this.capturesByPlayer) {
+        let maxCaptures = -1;
+        let tieBreakWinner = null;
+        
+        topPlayers.forEach(playerId => {
+            const captures = this.capturesByPlayer[playerId] || 0;
+            if (captures > maxCaptures) {
+                maxCaptures = captures;
+                tieBreakWinner = playerId;
+            }
+        });
+        
+        if (tieBreakWinner) {
+            const player = this.players.find(p => p._id.toString() === tieBreakWinner);
+            return player ? player.color : null;
+        }
+    }
+    
+    // Still tied after captures - return first player
+    const player = this.players.find(p => p._id.toString() === topPlayers[0]);
+    return player ? player.color : null;
 };
 
 RoomSchema.methods.isFull = function () {

@@ -8,6 +8,7 @@ import Overlay from '../Overlay/Overlay';
 import styles from './Gameboard.module.css';
 import trophyImage from '../../images/trophy.webp';
 import Scoreboard from '../Scoreboard/Scoreboard';
+import GameTimer from '../GameTimer/GameTimer';
 
 const Gameboard = () => {
     const socket = useContext(SocketContext);
@@ -30,6 +31,12 @@ const Gameboard = () => {
         socket.on('room:data', data => {
             data = JSON.parse(data);
             if (data.players == null) return;
+            
+            // If there's a winner in the data, set it
+            if (data.winner) {
+                setWinner(data.winner);
+            }
+            
             // Filling navbar with empty player nick container
             while (data.players.length !== 4) {
                 data.players.push({ name: '...' });
@@ -56,11 +63,22 @@ const Gameboard = () => {
         socket.on('game:winner', winner => {
             setWinner(winner);
         });
+        
+        socket.on('game:timer-end', (data) => {
+            console.log('Timer ended! Winner:', data.winner, 'Reason:', data.reason);
+            setWinner(data.winner);
+        });
+        
         socket.on('redirect', () => {
             window.location.reload();
         });
 
     }, [socket, context.playerId, context.roomId, setRolledNumber]);
+
+    // Debug winner state changes
+    useEffect(() => {
+        console.log('Winner state changed to:', winner);
+    }, [winner]);
 
     return (
         <>
@@ -77,6 +95,7 @@ const Gameboard = () => {
                         ended={winner !== null}
                     />
                     <Scoreboard players={players} />
+                    <GameTimer roomId={context.roomId} gameStarted={started} />
                     <Map pawns={pawns} nowMoving={nowMoving} rolledNumber={rolledNumber} />
                 </div>
             ) : (

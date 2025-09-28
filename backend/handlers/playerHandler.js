@@ -1,5 +1,6 @@
 const { getRoom, updateRoom } = require('../services/roomService');
 const { COLORS } = require('../utils/constants');
+const { sendScores } = require('../socket/emits');
 
 module.exports = socket => {
     const req = socket.request;
@@ -25,6 +26,11 @@ module.exports = socket => {
         room.getPlayer(req.session.playerId).changeReadyStatus();
         if (room.canStartGame()) {
             room.startGame();
+            // Send initial scores after game starts
+            sendScores(room._id.toString(), { 
+                playerScores: room.playerScores || {}, 
+                capturesByPlayer: room.capturesByPlayer || {} 
+            });
         }
         await updateRoom(room);
     };
@@ -33,6 +39,11 @@ module.exports = socket => {
         room.addPlayer(data.name);
         if (room.isFull()) {
             room.startGame();
+            // Send initial scores after game starts
+            sendScores(room._id.toString(), { 
+                playerScores: room.playerScores || {}, 
+                capturesByPlayer: room.capturesByPlayer || {} 
+            });
         }
         await updateRoom(room);
         reloadSession(room);

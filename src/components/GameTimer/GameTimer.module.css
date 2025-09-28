@@ -1,0 +1,69 @@
+.gameTimer {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 10px;
+    text-align: center;
+    min-width: 120px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+}
+
+.timerLabel {
+    font-size: 12px;
+    font-weight: bold;
+    color: #ccc;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.timerValue {
+    font-size: 24px;
+    font-weight: bold;
+    color: #00ff00;
+    font-family: 'Courier New', monospace;
+    transition: color 0.3s ease;
+}
+
+.timerValue.expired {
+    color: #ff0000;
+    animation: blink 1s infinite;
+}
+
+.expiredText {
+    font-size: 12px;
+    font-weight: bold;
+    color: #ff0000;
+    margin-top: 5px;
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0%, 50% {
+        opacity: 1;
+    }
+    51%, 100% {
+        opacity: 0.3;
+    }
+}
+
+/* Warning colors for low time */
+.timerValue {
+    color: #00ff00; /* Green for normal time */
+}
+
+.gameTimer:has(.timerValue) .timerValue {
+    color: #ffff00; /* Yellow for medium time (will be set via JavaScript) */
+}
+
+.gameTimer:has(.timerValue) .timerValue {
+    color: #ff8800; /* Orange for low time (will be set via JavaScript) */
+}
+
+.gameTimer:has(.timerValue) .timerValue {
+    color: #ff0000; /* Red for very low time (will be set via JavaScript) */
+}
